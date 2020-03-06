@@ -18,9 +18,9 @@ class AntColony:
         self.reset()
 
     def reset(self):
-        self.best_path_cost = sys.maxsize
-        self.best_path_vec = None
-        self.best_path_mat = None
+        self.do_dai_tot_nhat = sys.maxsize
+        self.duong_di_tot_nhat = None
+        self.best_ma_tran_duong_di = None
         self.last_best_path_iteration = 0
 
     def start(self):
@@ -70,20 +70,22 @@ class AntColony:
         print("Update called by %s" % (ant.ID,))
         self.ant_counter += 1
 
-        self.avg_path_cost += ant.duong_khoi_tao
+        self.avg_path_cost += ant.do_dai_duong_di
 
         # book-keeping
-        if ant.duong_khoi_tao < self.best_path_cost:
-            self.best_path_cost = ant.duong_khoi_tao
-            self.best_path_mat = ant.path_mat
-            self.best_path_vec = ant.ds_duong_di
+
+        if ant.do_dai_duong_di < self.do_dai_tot_nhat:
+            self.do_dai_tot_nhat = ant.do_dai_duong_di
+            self.best_ma_tran_duong_di = ant.path_mat
+            self.duong_di_tot_nhat = ant.ds_duong_di
             self.last_best_path_iteration = self.iter_counter
 
         if self.ant_counter == len(self.ants):
             self.avg_path_cost /= len(self.ants)
+            print("Math_s %s" % (self.best_ma_tran_duong_di))
             print("Best: %s, %s, %s, %s" % (
-            self.best_path_vec, self.best_path_cost, self.iter_counter, self.avg_path_cost,))
-            # outfile.write("\n%s\t%s\t%s" % (self.iter_counter, self.avg_path_cost, self.best_path_cost,))
+            self.duong_di_tot_nhat, self.do_dai_tot_nhat, self.iter_counter, self.avg_path_cost,))
+            # outfile.write("\n%s\t%s\t%s" % (self.iter_counter, self.avg_path_cost, self.do_dai_tot_nhat,))
             self.cv.acquire()
             self.cv.notify()
             self.cv.release()
@@ -111,7 +113,7 @@ class AntColony:
         for r in range(0, self.dothi.so_dinh):
             for s in range(0, self.dothi.so_dinh):
                 if r != s:
-                    delt_tau = self.best_path_mat[r][s] / self.best_path_cost
+                    delt_tau = self.best_ma_tran_duong_di[r][s] / self.do_dai_tot_nhat
                     evaporation = (1 - self.Alpha) * self.dothi.tau(r, s)
                     deposition = self.Alpha * delt_tau
 

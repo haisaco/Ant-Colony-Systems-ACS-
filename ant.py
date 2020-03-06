@@ -15,7 +15,7 @@ class Ant(Thread):
         self.dothi = self.thongtin.dothi
         self.ds_duong_di = []
         self.ds_duong_di.append(self.dinh_bat_dau)
-        self.duong_khoi_tao = 0
+        self.do_dai_duong_di = 0
 
         # same meaning as in standard equations
         self.Beta = 1
@@ -43,12 +43,13 @@ class Ant(Thread):
             # we need exclusive access to the graph
             dothi.lock.acquire()
             new_node = self.state_transition_rule(self.dinh_hien_tai)
-            self.duong_khoi_tao += dothi.delta(self.dinh_hien_tai, new_node)
+            self.do_dai_duong_di += dothi.delta(self.dinh_hien_tai, new_node)
 
             self.ds_duong_di.append(new_node)
             self.path_mat[self.dinh_hien_tai][new_node] = 1  # adjacency matrix representing path
 
-            print("Ant %s : %s, %s" % (self.ID, self.ds_duong_di, self.duong_khoi_tao,))
+            print("Ant %s : %s, %s" % (self.ID, self.ds_duong_di, self.do_dai_duong_di,))
+            print("Path_math %s" % (self.path_mat))
 
             self.local_updating_rule(self.dinh_hien_tai, new_node)
             dothi.lock.release()
@@ -56,7 +57,7 @@ class Ant(Thread):
             self.dinh_hien_tai = new_node
 
         # don't forget to close the tour
-        self.duong_khoi_tao += dothi.delta(self.ds_duong_di[-1], self.ds_duong_di[0])
+        self.do_dai_duong_di += dothi.delta(self.ds_duong_di[-1], self.ds_duong_di[0])
 
         # send our results to the colony
         self.thongtin.update(self)

@@ -14,22 +14,20 @@ if __name__ == "__main__":
     # xay dung mang
     so_dinh = len(du_lieu)
     dothi = AntGraph(so_dinh, du_lieu)
-    best_path_vec = None
-    best_path_cost = sys.maxsize
+    duong_di_tot_nhat = None
+    do_dai_tot_nhat = sys.maxsize
     for i in range(0, repetitions):
         dothi.reset_tau()
         ant_colony = AntColony(dothi, so_kien, so_lan_lap_toi_da)
         ant_colony.start()
-        if ant_colony.best_path_cost < best_path_cost:
-            best_path_vec = ant_colony.best_path_vec
-            best_path_cost = ant_colony.best_path_cost
+        if ant_colony.do_dai_tot_nhat < do_dai_tot_nhat:
+            duong_di_tot_nhat = ant_colony.duong_di_tot_nhat
+            do_dai_tot_nhat = ant_colony.do_dai_tot_nhat
 
     print("\n------------------------------------------------------------")
-    print("                     Results                                ")
+    print("                     Kết quả                                ")
     print("------------------------------------------------------------")
-    print("\nBest path = %s" % (best_path_vec,))
-    for node in best_path_vec:
+    print("\nĐường đi tốt nhất = %s" % (duong_di_tot_nhat,))
+    for node in duong_di_tot_nhat:
         print(cac_dinh[node] + " ", )
-    print("\nBest path cost = %s\n" % (best_path_cost,))
-
-print("ABC")
+    print("\nĐộ dài tốt nhất = %s\n" % (do_dai_tot_nhat,))
