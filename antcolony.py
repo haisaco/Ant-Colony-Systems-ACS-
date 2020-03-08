@@ -6,11 +6,12 @@ import sys
 
 
 class AntColony:
-    def __init__(self, dothi, num_ants, num_iterations):
+    def __init__(self, dothi, so_kien, so_vong_lap):
         self.dothi = dothi
-        self.num_ants = num_ants
-        self.num_iterations = num_iterations
-        self.Alpha = 0.1
+        self.so_kien = so_kien
+        self.so_vong_lap = so_vong_lap
+        # tham số học tăng cường
+        self.p = 0.1
 
         # condition var
         self.cv = Condition()
@@ -21,17 +22,17 @@ class AntColony:
         self.do_dai_tot_nhat = sys.maxsize
         self.duong_di_tot_nhat = None
         self.best_ma_tran_duong_di = None
-        self.last_best_path_iteration = 0
+        self.best_so_vong_lap_cuoi = 0
 
     def start(self):
         self.ants = self.create_ants()
-        self.iter_counter = 0
+        self.dem_vong_lap = 0
 
-        while self.iter_counter < self.num_iterations:
+        while self.dem_vong_lap < self.so_vong_lap:
             self.iteration()
 
             self.cv.acquire()
-            # wait until update calls notify()
+            # hàm đợi threading
             self.cv.wait()
 
             lock = self.dothi.lock
@@ -41,51 +42,50 @@ class AntColony:
 
             self.cv.release()
 
-    # one iteration involves spawning a number of ant threads
+    # chạy vòng lặp bắt đầu cho kiến thăm đỉnh
     def iteration(self):
-        self.avg_path_cost = 0
+        self.trungbinh_dodai_duongdi = 0
         self.ant_counter = 0
-        self.iter_counter += 1
-        print("iter_counter = %s" % (self.iter_counter,))
+        self.dem_vong_lap += 1
+        print("vòng lặp: = %s" % (self.dem_vong_lap,))
         for ant in self.ants:
-            print("starting ant = %s" % (ant.ID))
+            print("Kiến %s bắt đầu" % (ant.ID))
             ant.start()
 
+    # số lượng kiến
     def num_ants(self):
         return len(self.ants)
 
+    # số lượng vòng lặp
     def num_iterations(self):
-        return self.num_iterations
+        return self.so_vong_lap
 
+    # đếm số vòng lăp
     def iteration_counter(self):
-        return self.iter_counter
+        return self.dem_vong_lap
 
-    # called by individual ants
+    # gọi hàm update
     def update(self, ant):
         lock = Lock()
         lock.acquire()
 
-        # outfile = open("results.dat", "a")
-
-        print("Update called by %s" % (ant.ID,))
         self.ant_counter += 1
 
-        self.avg_path_cost += ant.do_dai_duong_di
+        self.trungbinh_dodai_duongdi += ant.do_dai_duong_di
 
         # book-keeping
 
         if ant.do_dai_duong_di < self.do_dai_tot_nhat:
             self.do_dai_tot_nhat = ant.do_dai_duong_di
-            self.best_ma_tran_duong_di = ant.path_mat
+            self.best_ma_tran_duong_di = ant.matran_duong_di
             self.duong_di_tot_nhat = ant.ds_duong_di
-            self.last_best_path_iteration = self.iter_counter
+            self.best_so_vong_lap_cuoi = self.dem_vong_lap
 
         if self.ant_counter == len(self.ants):
-            self.avg_path_cost /= len(self.ants)
-            print("Math_s %s" % (self.best_ma_tran_duong_di))
-            print("Best: %s, %s, %s, %s" % (
-            self.duong_di_tot_nhat, self.do_dai_tot_nhat, self.iter_counter, self.avg_path_cost,))
-            # outfile.write("\n%s\t%s\t%s" % (self.iter_counter, self.avg_path_cost, self.do_dai_tot_nhat,))
+            self.trungbinh_dodai_duongdi /= len(self.ants)
+            print("Tốt nhất: %s, %s, %s, %s" % (
+                self.duong_di_tot_nhat, self.do_dai_tot_nhat, self.dem_vong_lap, self.trungbinh_dodai_duongdi,))
+
             self.cv.acquire()
             self.cv.notify()
             self.cv.release()
@@ -93,28 +93,29 @@ class AntColony:
         lock.release()
 
     def done(self):
-        return self.iter_counter == self.num_iterations
+        return self.dem_vong_lap == self.so_vong_lap
 
-    # assign each ant a random start-node
+    # gán cho mỗi con kiến một node ngẫu nhiên bắt đầu
     def create_ants(self):
         self.reset()
         ants = []
-        for i in range(0, self.num_ants):
+        for i in range(0, self.so_kien):
             ant = Ant(i, random.randint(0, self.dothi.so_dinh - 1), self)
             ants.append(ant)
 
         return ants
 
-    # changes the tau matrix based on evaporation/deposition
+    # cập nhật lại ma trận pheromone cho sự bay hơi
     def global_updating_rule(self):
-        evaporation = 0
-        deposition = 0
-
+        pheromone = 0
+        print("\nglobal pheromone update")
         for r in range(0, self.dothi.so_dinh):
             for s in range(0, self.dothi.so_dinh):
                 if r != s:
+                    # best tour
                     delt_tau = self.best_ma_tran_duong_di[r][s] / self.do_dai_tot_nhat
-                    evaporation = (1 - self.Alpha) * self.dothi.tau(r, s)
-                    deposition = self.Alpha * delt_tau
-
-                    self.dothi.update_tau(r, s, evaporation + deposition)
+                    #tau rs
+                    tau_rs = self.dothi.tau(r, s)
+                    #                   ((1-p)*tau) * tau     +           delta(i,j)
+                    pheromone = (((1 - self.p) * tau_rs) * tau_rs) + (self.p * delt_tau)
+                    self.dothi.update_tau(r, s, pheromone)

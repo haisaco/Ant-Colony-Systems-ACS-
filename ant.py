@@ -17,67 +17,66 @@ class Ant(Thread):
         self.ds_duong_di.append(self.dinh_bat_dau)
         self.do_dai_duong_di = 0
 
-        # same meaning as in standard equations
+        #
         self.Beta = 1
-        # self.Q0 = 1  # Q0 = 1 works just fine for 10 city case (no explore)
+        # khởi tạo giá trị q ban đầu
         self.Q0 = 0.5
-        self.Rho = 0.99
+        # chỉ số p
+        self.Rho = 0.1
 
-        # store the nodes remaining to be explored here
+        # các đỉnh còn lại chưa đc thăm
         self.dinh_ghe_tham = {}
 
         for i in range(0, self.dothi.so_dinh):
             if i != self.dinh_bat_dau:
                 self.dinh_ghe_tham[i] = i
 
-        # create n X n matrix 0'd out to start
-        self.path_mat = []
+        # khởi tạo ma trận đường đi =0
+        self.matran_duong_di = []
 
         for i in range(0, self.dothi.so_dinh):
-            self.path_mat.append([0] * self.dothi.so_dinh)
+            self.matran_duong_di.append([0] * self.dothi.so_dinh)
 
-    # overide Thread's run()
+    # hàm Thread run()
     def run(self):
         dothi = self.thongtin.dothi
         while not self.end():
-            # we need exclusive access to the graph
+
             dothi.lock.acquire()
             new_node = self.state_transition_rule(self.dinh_hien_tai)
             self.do_dai_duong_di += dothi.delta(self.dinh_hien_tai, new_node)
 
             self.ds_duong_di.append(new_node)
-            self.path_mat[self.dinh_hien_tai][new_node] = 1  # adjacency matrix representing path
+            self.matran_duong_di[self.dinh_hien_tai][new_node] = 1  # đường đi của kiến dưới dạng ma trận
 
             print("Ant %s : %s, %s" % (self.ID, self.ds_duong_di, self.do_dai_duong_di,))
-            print("Path_math %s" % (self.path_mat))
 
             self.local_updating_rule(self.dinh_hien_tai, new_node)
             dothi.lock.release()
 
             self.dinh_hien_tai = new_node
 
-        # don't forget to close the tour
-        self.do_dai_duong_di += dothi.delta(self.ds_duong_di[-1], self.ds_duong_di[0])
+        # cập nhật độ dài đường đi qua mỗi lần kiến thăm đỉnh
+        # self.do_dai_duong_di += dothi.delta(self.ds_duong_di[-1], self.ds_duong_di[0])
 
-        # send our results to the colony
+        # gửi kết quả ra ngoài colony
         self.thongtin.update(self)
-        print("Ant thread %s terminating." % (self.ID,))
+        print("Tiến trình kiến %s chấm dứt." % (self.ID,))
+        print("===============================================\n")
 
-        # allows thread to be restarted (calls Thread.__init__)
+        # khởi tạo lại luồng
         self.__init__(self.ID, self.dinh_bat_dau, self.thongtin)
 
     def end(self):
         return not self.dinh_ghe_tham
 
-        # described in report -- determines next node to visit after curr_node
-
+    # điều kiện chọn đỉnh thăm tiếp theo
     def state_transition_rule(self, dinh_hien_tai):
         dothi = self.thongtin.dothi
         q = random.random()
         max_node = -1
 
         if q < self.Q0:
-            print("Exploitation")
             max_val = -1
             val = None
 
@@ -90,7 +89,6 @@ class Ant(Thread):
                     max_val = val
                     max_node = node
         else:
-            print("Exploration")
             sum = 0
             node = -1
 
@@ -103,12 +101,12 @@ class Ant(Thread):
 
             avg = sum / len(self.dinh_ghe_tham)
 
-            print("avg = %s" % (avg,))
+            # print("trung bình = %s" % (avg,))
 
             for node in self.dinh_ghe_tham.values():
                 p = dothi.tau(dinh_hien_tai, node) * math.pow(dothi.etha(dinh_hien_tai, node), self.Beta)
                 if p > avg:
-                    print("p = %s" % (p,))
+                    # print("p = %s" % (p,))
                     max_node = node
 
             if max_node == -1:
@@ -118,11 +116,12 @@ class Ant(Thread):
             raise Exception("max_node < 0")
 
         del self.dinh_ghe_tham[max_node]
-
+        print("Đỉnh thăm tiếp theo %s :\n" % (max_node))
         return max_node
 
-    # phermone update rule for indiv ants
+    # cập nhật lại local pheromone
     def local_updating_rule(self, dinh_hien_tai, next_node):
+        print("update pheromone local tại đỉnh %s." % (dinh_hien_tai))
         dothi = self.thongtin.dothi
         val = (1 - self.Rho) * dothi.tau(dinh_hien_tai, next_node) + (self.Rho * dothi.tau0)
         dothi.update_tau(dinh_hien_tai, next_node, val)

@@ -6,20 +6,24 @@ class AntGraph:
         self.so_dinh = so_dinh
         self.du_lieu = du_lieu
         self.lock = Lock()
-        # tau mat contains the amount of phermone at node x,y
+
+        # tau_mat là ma trận chứa giá trị pheromone
         if tau_mat is None:
             self.tau_mat = []
             for i in range(0, so_dinh):
                 self.tau_mat.append([0] * so_dinh)
 
+    # hàm lấy giá trị tại điểm r,s
     def delta(self, r, s):
         return self.du_lieu[r][s]
 
+    # hàm lấy giá trị pheromone tại điểm r,s
     def tau(self, r, s):
         return self.tau_mat[r][s]
 
         # 1 / delta = etha
 
+    # thông tin heuristic ở điểm r,s
     def etha(self, r, s):
         return 1.0 / self.delta(r, s)
 
@@ -37,7 +41,7 @@ class AntGraph:
         avg = self.average_delta()
 
         # khởi tao tau ban đầu
-        self.tau0 = 1.0 / (self.so_dinh * 0.5 * avg)
+        self.tau0 = 1.0 #/ (self.so_dinh * 0.5 * avg)
 
         print("Average = %s" % (avg,))
         print("Tau0 = %s" % (self.tau0))
@@ -47,7 +51,7 @@ class AntGraph:
                 self.tau_mat[r][s] = self.tau0
         lock.release()
 
-    # giá trị trung bình của delta
+    # giá trị trung bình của dữ liệu
     def average_delta(self):
         return self.average(self.du_lieu)
 
